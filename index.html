@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Life Quest RPG</title>
+  <style>
+    :root {
+      --bg: #07111d;
+      --panel: rgba(12, 25, 42, 0.82);
+      --panel-border: rgba(140, 199, 255, 0.12);
+      --text: #edf5ff;
+      --muted: #91a8c5;
+      --accent: #59d0ff;
+      --accent-2: #87ffae;
+      --accent-3: #ffc857;
+      --shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+      --radius-xl: 28px;
+      --font: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+      --xp-gradient: linear-gradient(90deg, #59d0ff 0%, #7de8b1 100%);
+      --glass: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      --int: #65b9ff;
+      --exp: #72ffca;
+      --cha: #ff8ee8;
+      --cre: #ffb15f;
+      --dis: #d0a0ff;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(89, 208, 255, 0.18), transparent 34%),
+        radial-gradient(circle at top right, rgba(255, 200, 87, 0.12), transparent 28%),
+        radial-gradient(circle at bottom center, rgba(135, 255, 174, 0.08), transparent 35%),
+        linear-gradient(180deg, #040a12 0%, #081220 48%, #07111d 100%);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 42vw;
+      height: 42vw;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.22;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    body::before {
+      top: -8vw;
+      left: -10vw;
+      background: #178dff;
+      animation: floatGlow 14s ease-in-out infinite;
+    }
+
+    body::after {
+      right: -10vw;
+      bottom: -12vw;
+      background: #00b97f;
+      animation: floatGlow 18s ease-in-out infinite reverse;
+    }
+
+    @keyframes floatGlow {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(3vw, 2vw) scale(1.08); }
+    }
+
+    .app-shell {
+      width: min(1280px, calc(100% - 24px));
+      margin: 0 auto;
+      padding: 20px 0 56px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 12px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--panel-border);
+      border-radius: 22px;
+      background: rgba(6, 14, 24, 0.7);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+    }
+
+    .brand h1 { margin: 0; font-size: clamp(1.1rem, 2vw, 1.5rem); letter-spacing: 0.04em; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 0.88rem; }
+    .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .btn, .chip, .toggle-btn, .skill-btn, .quest-btn {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--glass);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .btn:hover, .chip:hover, .toggle-btn:hover, .skill-btn:hover, .quest-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(89, 208, 255, 0.4);
+      box-shadow: 0 10px 22px rgba(17, 53, 82, 0.3);
+    }
+
+    .btn, .toggle-btn { padding: 10px 14px; border-radius: 12px; font-weight: 600; }
+    .dashboard { display: grid; grid-template-columns: 1.35fr 0.95fr; gap: 16px; margin-bottom: 16px; }
+
+    .panel {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)),
+        var(--panel);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(130deg, rgba(255,255,255,0.08), transparent 28%);
+      pointer-events: none;
+    }
+
+    .panel-content { position: relative; padding: 18px; z-index: 1; }
+
+    .hero {
+      min-height: 290px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(circle at 80% 20%, rgba(89,208,255,0.24), transparent 26%),
+        radial-gradient(circle at 20% 80%, rgba(255,200,87,0.12), transparent 24%),
+        linear-gradient(180deg, rgba(11,25,39,0.95), rgba(8,17,30,0.95));
+    }
+
+    .hero-top, .quest-head, .panel-title, .section-heading, .quest-toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .rank-badge, .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.92rem;
+    }
+
+    .avatar-ring {
+      width: 72px;
+      height: 72px;
+      border-radius: 24px;
+      display: grid;
+      place-items: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #09111a;
+      background: conic-gradient(from 180deg, #59d0ff, #87ffae, #ffc857, #59d0ff);
+      box-shadow: inset 0 0 0 6px #05101b, 0 15px 30px rgba(0, 0, 0, 0.28);
+    }
+
+    .hero h2 { margin: 16px 0 8px; font-size: clamp(1.5rem, 3vw, 2.35rem); line-height: 1.05; }
+    .hero p { margin: 0; color: var(--muted); max-width: 58ch; }
+    .meta-row, .filters, .quest-tags, .quest-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .xp-block { margin-top: 18px; }
+    .progress-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.95rem; }
+
+    .progress-track {
+      position: relative;
+      height: 16px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.07);
+      box-shadow: inset 0 1px 6px rgba(0,0,0,0.35);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: var(--xp-gradient);
+      transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+      animation: shine 2.6s linear infinite;
+    }
+
+    @keyframes shine {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(100%); }
+    }
+
+    .hero-grid, .summary-grid, .chart-grid, .quest-grid, .bottom-grid, .streak-rails, .skill-grid, .achievements, .notification-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .summary-card, .streak-item, .achievement-card, .log-item, .skill-node, .quest-card, .daily-card, .stat-card {
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    }
+
+    .summary-card, .streak-item, .skill-node, .achievement-card, .daily-card, .stat-card, .quest-card, .log-item { padding: 14px; }
+    .summary-card strong { display: block; font-size: 1.5rem; margin-top: 8px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat-card { min-height: 118px; display: flex; flex-direction: column; justify-content: space-between; }
+    .stat-card .label { font-weight: 700; letter-spacing: 0.08em; font-size: 0.82rem; }
+    .stat-card strong { font-size: 1.65rem; margin-top: 6px; }
+    .tiny-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 10px; }
+    .tiny-bar span { display: block; height: 100%; width: 0; transition: width 0.45s ease; }
+    .panel-title h3, .section-heading h3, .section-heading h4 { margin: 0; font-size: 1rem; letter-spacing: 0.04em; }
+    .panel-title p, .muted, .quest-subtle, .streak-item small, .skill-node small, .achievement-card small { margin: 4px 0 0; font-size: 0.88rem; color: var(--muted); }
+    .chart-grid { grid-template-columns: 1fr 1fr; margin-bottom: 16px; }
+    .chart-card canvas { width: 100%; height: 220px; display: block; }
+    .bottom-grid { grid-template-columns: 0.9fr 1.1fr; margin-bottom: 16px; }
+    .skill-node { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .skill-node strong, .streak-item strong { display: block; font-size: 1.1rem; margin-bottom: 4px; }
+    .skill-btn { min-width: 82px; padding: 10px 12px; border-radius: 12px; font-weight: 700; }
+    .skill-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+    .achievement-card { position: relative; overflow: hidden; }
+    .achievement-card.unlocked::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,200,87,0.18), transparent 48%); }
+    .achievement-card .title { font-weight: 700; margin-bottom: 4px; }
+    .notification-list { max-height: 320px; overflow: auto; padding-right: 4px; }
+    .quest-section { margin-top: 18px; }
+    .filters .chip.active { background: rgba(89,208,255,0.18); border-color: rgba(89,208,255,0.34); }
+    .quest-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .quest-card { display: flex; flex-direction: column; gap: 12px; transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.2s ease; }
+    .quest-card.completed { opacity: 0.8; border-color: rgba(135,255,174,0.3); }
+    .quest-title { margin: 0; font-size: 1rem; }
+    .tag { padding: 6px 10px; border-radius: 999px; font-size: 0.74rem; letter-spacing: 0.05em; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08); }
+    .tag.daily { color: #72ffca; }
+    .tag.side { color: #59d0ff; }
+    .tag.boss { color: #ffc857; }
+    .quest-btn { padding: 10px 12px; border-radius: 12px; font-weight: 700; }
+    .quest-btn.primary { background: rgba(89,208,255,0.16); border-color: rgba(89,208,255,0.28); }
+    .quest-btn.warn { background: rgba(255,125,125,0.13); border-color: rgba(255,125,125,0.28); }
+    .daily-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .daily-card { position: relative; overflow: hidden; }
+    .daily-card::after { content: ""; position: absolute; inset: auto 0 0 0; height: 3px; background: var(--xp-gradient); opacity: 0.85; }
+    .sound-toggle { display: inline-flex; align-items: center; gap: 8px; }
+    .sound-toggle .state { color: var(--accent-2); font-size: 0.88rem; font-weight: 700; }
+    .toast-wrap { position: fixed; right: 18px; bottom: 18px; z-index: 30; display: grid; gap: 10px; width: min(360px, calc(100vw - 28px)); }
+    .toast { padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(8, 18, 30, 0.92); backdrop-filter: blur(12px); box-shadow: var(--shadow); animation: toastIn 0.35s ease forwards; }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(18px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .empty { padding: 18px; border-radius: 16px; border: 1px dashed rgba(255,255,255,0.12); color: var(--muted); text-align: center; }
+    .pulse { animation: pulseGlow 0.8s ease; }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 rgba(89,208,255,0); }
+      50% { box-shadow: 0 0 0 12px rgba(89,208,255,0.08); }
+      100% { box-shadow: 0 0 0 rgba(89,208,255,0); }
+    }
+
+    @media (max-width: 1080px) {
+      .dashboard, .chart-grid, .bottom-grid, .quest-grid { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .daily-strip { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .app-shell { width: min(100% - 16px, 100%); padding-top: 12px; }
+      .topbar { top: 8px; border-radius: 18px; }
+      .summary-grid, .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hero-top, .quest-toolbar, .section-heading { flex-direction: column; align-items: stretch; }
+    }
+
+    @media (max-width: 480px) {
+      .summary-grid, .stat-grid { grid-template-columns: 1fr; }
+      .top-actions, .filters, .quest-actions { width: 100%; }
+      .btn, .toggle-btn, .quest-btn, .skill-btn, .chip { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <h1>Life Quest RPG</h1>
+        <p>Turn your real life into a levelling adventure.</p>
+      </div>
+      <div class="top-actions">
+        <div class="sound-toggle chip">
+          <span>Sound</span>
+          <span class="state" id="soundState">ON</span>
+        </div>
+        <button class="toggle-btn" id="soundToggleBtn" type="button">Toggle Sound</button>
+        <button class="toggle-btn" id="resetDailyBtn" type="button">Daily Reset</button>
+        <button class="toggle-btn" id="fullResetBtn" type="button">Full Reset</button>
+      </div>
+    </header>
+
+    <section class="dashboard">
+      <article class="panel hero">
+        <div class="panel-content">
+          <div class="hero-top">
+            <div>
+              <div class="rank-badge">
+                <span>Active Title</span>
+                <strong id="activeTitle">Rookie Adventurer</strong>
+              </div>
+              <h2>Build your stats like a late-game character.</h2>
+              <p>Complete daily quests, clear side quests, and survive boss quests to gain XP, level up, and unlock stronger passives.</p>
+            </div>
+            <div class="avatar-ring" id="levelBadge">Lv 1</div>
+          </div>
+
+          <div class="meta-row">
+            <div class="chip">Level <strong id="levelText">1</strong></div>
+            <div class="chip">Total XP <strong id="totalXpText">0</strong></div>
+            <div class="chip">Streak <strong id="streakText">0</strong></div>
+            <div class="chip">Multiplier <strong id="multiplierText">1x</strong></div>
+          </div>
+
+          <div class="xp-block">
+            <div class="progress-head">
+              <span>XP to next level</span>
+              <strong id="xpMeta">0 / 100 XP</strong>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="xpFill"></div>
+            </div>
+          </div>
+
+          <div class="stat-grid" id="statGrid"></div>
+        </div>
+      </article>
+
+      <aside class="hero-grid">
+        <article class="panel">
+          <div class="panel-content">
+            <div class="panel-title">
+              <div>
+                <h3>Run Summary</h3>
+                <p>Track your current progression at a glance.</p>
+              </div>
+            </div>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <span class="muted">Quest Log</span>
+                <strong id="questProgressText">0 / 102</strong>
+                <small class="muted">One-time quests completed</small>
+              </div>
+              <div class="summary-card">
+                <span class="muted">Daily Wins Today</span>
+                <strong id="dailyWinText">0</strong>
+                <small class="muted">Repeatable daily completions</small>
+              </div>
+              <div class="summary-card">
+                <span class="muted">Skill Points</span>
+                <strong id="skillPointText">0</strong>
+                <small class="muted">Spend on passive boosts</small>
+              </div>
+              <div class="summary-card">
+                <span class="muted">Boss Progress</span>
+                <strong id="bossProgressText">0 / 2</strong>
+                <small class="muted">Elite quests cleared</small>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-content">
+            <div class="panel-title">
+              <div>
+                <h3>Streak Engine</h3>
+                <p>Consistency turns small wins into huge XP gains.</p>
+              </div>
+            </div>
+            <div class="streak-rails" id="streakRails"></div>
+          </div>
+        </article>
+      </aside>
+    </section>
+
+    <section class="chart-grid">
+      <article class="panel chart-card">
+        <div class="panel-content">
+          <div class="panel-title">
+            <div>
+              <h3>XP Growth</h3>
+              <p>Recent session XP trend.</p>
+            </div>
+          </div>
+          <canvas id="xpChart" width="640" height="240"></canvas>
+        </div>
+      </article>
+
+      <article class="panel chart-card">
+        <div class="panel-content">
+          <div class="panel-title">
+            <div>
+              <h3>Stat Growth</h3>
+              <p>Your five life stats on one radar board.</p>
+            </div>
+          </div>
+          <canvas id="statChart" width="640" height="240"></canvas>
+        </div>
+      </article>
+    </section>
+
+    <section class="bottom-grid">
+      <article class="panel">
+        <div class="panel-content">
+          <div class="panel-title">
+            <div>
+              <h3>Skill Tree</h3>
+              <p>Unlock permanent buffs with level-earned points.</p>
+            </div>
+            <strong id="skillBuffSummary">No buffs active</strong>
+          </div>
+          <div class="skill-grid" id="skillGrid"></div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-content">
+          <div class="panel-title">
+            <div>
+              <h3>Titles & Achievements</h3>
+              <p>Stat milestones unlock collectible identities.</p>
+            </div>
+          </div>
+          <div class="achievements" id="achievementList"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-content">
+        <div class="section-heading">
+          <div>
+            <h3>Daily Mission Board</h3>
+            <p class="muted">Repeatable actions that reset on the real calendar day.</p>
+          </div>
+          <strong id="lastResetText"></strong>
+        </div>
+        <div class="daily-strip" id="dailyQuestList"></div>
+      </div>
+    </section>
+
+    <section class="panel quest-section">
+      <div class="panel-content">
+        <div class="quest-toolbar">
+          <div>
+            <div class="section-heading">
+              <div>
+                <h3>Quest Log</h3>
+                <p class="muted">All side and boss quests grouped by category and type.</p>
+              </div>
+            </div>
+          </div>
+          <div class="filters" id="filters"></div>
+        </div>
+        <div class="quest-grid" id="questList"></div>
+      </div>
+    </section>
+
+    <section class="panel quest-section">
+      <div class="panel-content">
+        <div class="panel-title">
+          <div>
+            <h3>Adventure Log</h3>
+            <p>Recent progression, unlocks, and quest completions.</p>
+          </div>
+        </div>
+        <div class="notification-list" id="logList"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script>
+    (() => {
+      // Core save key and progression tuning.
+      const STORAGE_KEY = "lifeQuestRpgSaveV1";
+      const BASE_XP = 100;
+      const XP_STEP = 50;
+      const MAX_LOGS = 24;
+      const MAX_HISTORY = 30;
+
+      const STAT_META = {
+        INT: { name: "INT", label: "Academics", color: "#65b9ff" },
+        EXP: { name: "EXP", label: "Exploration", color: "#72ffca" },
+        CHA: { name: "CHA", label: "Social", color: "#ff8ee8" },
+        CRE: { name: "CRE", label: "Creativity", color: "#ffb15f" },
+        DIS: { name: "DIS", label: "Discipline", color: "#d0a0ff" }
+      };
+
+      const DAILY_QUESTS = [
+        { id: "daily-focus", title: "Deep Focus Session", stat: "DIS", xp: 24, statGain: 3, description: "Complete one focused 45-minute work block." },
+        { id: "daily-study", title: "Study Sprint", stat: "INT", xp: 22, statGain: 3, description: "Review one lesson, chapter, or set of notes." },
+        { id: "daily-social", title: "Social Momentum", stat: "CHA", xp: 18, statGain: 2, description: "Start one meaningful conversation or check in with someone." },
+        { id: "daily-create", title: "Creative Spark", stat: "CRE", xp: 20, statGain: 3, description: "Make something small: photo, sketch, edit, note, or idea." },
+        { id: "daily-explore", title: "Mini Exploration", stat: "EXP", xp: 18, statGain: 2, description: "Walk somewhere new, notice something new, or learn outside routine." }
+      ];
+
+      const SIDE_QUESTS = [
+        ["INT", "Academic", "Finish 1 chapter early"], ["INT", "Academic", "Finish 5 chapters early"], ["INT", "Academic", "Score top 3"], ["INT", "Academic", "Score A in weakest subject"], ["INT", "Academic", "Improve BM +10 marks"],
+        ["INT", "Academic", "1 past year paper"], ["INT", "Academic", "5 past year papers"], ["INT", "Academic", "Memorise 50 sejarah facts"], ["INT", "Academic", "Memorise 100 sejarah facts"], ["INT", "Academic", "Notes for 1 subject"],
+        ["INT", "Academic", "Notes for 3 subjects"], ["INT", "Academic", "Active recall 7 days"], ["INT", "Academic", "Active recall 14 days"], ["INT", "Academic", "2-hour deep study"], ["INT", "Academic", "3-hour deep study"],
+        ["INT", "Academic", "Ask 5 questions"], ["INT", "Academic", "Teach a friend"], ["INT", "Academic", "Group study"], ["INT", "Academic", "Homework same day 1 week"], ["INT", "Academic", "Homework same day 2 weeks"],
+        ["INT", "Academic", "Read 1 book"], ["INT", "Academic", "Read 3 books"], ["INT", "Academic", "Mind maps (3 chapters)"], ["INT", "Academic", "Revise 10 days"], ["INT", "Academic", "Plan scholarship path"],
+        ["EXP", "Exploration", "Solo public transport day"], ["EXP", "Exploration", "Visit park"], ["EXP", "Exploration", "Explore street market"], ["EXP", "Exploration", "Visit city park"], ["EXP", "Exploration", "Day trip"],
+        ["EXP", "Exploration", "10k steps"], ["EXP", "Exploration", "15k steps"], ["EXP", "Exploration", "Visit museum"], ["EXP", "Exploration", "Try 3 foods"], ["EXP", "Exploration", "Try 5 foods"],
+        ["EXP", "Exploration", "Sunrise trip"], ["EXP", "Exploration", "Night exploration"], ["EXP", "Exploration", "Full day public transport"], ["EXP", "Exploration", "2-hour observation"], ["EXP", "Exploration", "Build travel guide"],
+        ["CHA", "Social", "Talk to new classmate"], ["CHA", "Social", "Talk to 3 new people"], ["CHA", "Social", "Make new friend"], ["CHA", "Social", "Strengthen friendship"], ["CHA", "Social", "Organize hangout"],
+        ["CHA", "Social", "Plan outing"], ["CHA", "Social", "Help friend academically"], ["CHA", "Social", "Support friend emotionally"], ["CHA", "Social", "Compliment 5 people"], ["CHA", "Social", "Reconnect friend"],
+        ["CHA", "Social", "Make someone laugh"], ["CHA", "Social", "No gossip 7 days"], ["CHA", "Social", "No gossip 30 days"], ["CHA", "Social", "Speak confidently"], ["CHA", "Social", "Share notes"],
+        ["CHA", "Social", "Become reliable"], ["CHA", "Social", "Apologise properly"], ["CHA", "Social", "Give advice"], ["CHA", "Social", "Talk to senior"], ["CHA", "Social", "Build reputation"],
+        ["CRE", "Creativity", "Shoot 50 photos"], ["CRE", "Creativity", "Shoot 100 photos"], ["CRE", "Creativity", "Master manual camera"], ["CRE", "Creativity", "Golden hour shot"], ["CRE", "Creativity", "Shoot in park"],
+        ["CRE", "Creativity", "5 strong photos"], ["CRE", "Creativity", "10 strong photos"], ["CRE", "Creativity", "B&W series"], ["CRE", "Creativity", "Motion blur"], ["CRE", "Creativity", "Night shoot"],
+        ["CRE", "Creativity", "Photo story"], ["CRE", "Creativity", "Learn editing"], ["CRE", "Creativity", "Reflection shot"], ["CRE", "Creativity", "Rain shot"], ["CRE", "Creativity", "Build portfolio"],
+        ["CRE", "Creativity", "One lens challenge"], ["CRE", "Creativity", "Composition mastery"], ["CRE", "Creativity", "Portfolio-level photo"], ["CRE", "Creativity", "Before/after edit"], ["CRE", "Creativity", "Develop style"],
+        ["DIS", "Discipline", "No procrastination 3 days"], ["DIS", "Discipline", "No procrastination 7 days"], ["DIS", "Discipline", "No phone morning 7 days"], ["DIS", "Discipline", "Sleep before 11 (7 days)"], ["DIS", "Discipline", "Exercise 14 days"],
+        ["DIS", "Discipline", "Reduce social media 50%"], ["DIS", "Discipline", "Journal 7 days"], ["DIS", "Discipline", "No snooze"], ["DIS", "Discipline", "Track habits 30 days"], ["DIS", "Discipline", "Clean room 2 weeks"],
+        ["DIS", "Discipline", "Drink water 7 days"], ["DIS", "Discipline", "Finish tasks fully"], ["DIS", "Discipline", "Hardest task first 7 days"], ["DIS", "Discipline", "No junk food 5 days"], ["DIS", "Discipline", "Control anger"],
+        ["DIS", "Discipline", "2-hour focus"], ["DIS", "Discipline", "Morning routine"], ["DIS", "Discipline", "Night routine"], ["DIS", "Discipline", "Weekly reflection 4 weeks"], ["DIS", "Discipline", "Complete 50 quests"]
+      ];
+
+      const BOSS_QUESTS = [
+        { id: "boss-social-media", title: "No Social Media 7 Days", stat: "DIS", category: "Discipline", type: "boss", description: "Daily check-in for seven clean days. Miss a day or break the rule and the run resets.", target: 7, xp: 180, statGain: 100, rewardTitle: "Mind Over Noise" },
+        { id: "boss-cold-shower", title: "Cold Shower 90 Days", stat: "DIS", category: "Discipline", type: "boss", description: "Ninety-day endurance run with one daily check-in. A broken streak resets the challenge.", target: 90, xp: 450, statGain: 300, rewardTitle: "Iron Resolve" }
+      ];
+
+      const SKILLS = [
+        { id: "xp-booster", name: "XP Amplifier", cost: 1, description: "+10% quest XP gain.", effect: { xpBoost: 0.1 } },
+        { id: "discipline-core", name: "Discipline Core", cost: 1, description: "+1 extra DIS on every DIS quest.", effect: { statBonus: { DIS: 1 } } },
+        { id: "scholar-engine", name: "Scholar Engine", cost: 2, description: "+1 extra INT on INT quests and +5 flat XP.", effect: { statBonus: { INT: 1 }, flatXp: 5 } },
+        { id: "social-link", name: "Social Link", cost: 2, description: "+1 extra CHA and +1 extra EXP on social wins.", effect: { statBonus: { CHA: 1, EXP: 1 } } },
+        { id: "creative-flow", name: "Creative Flow", cost: 2, description: "+1 extra CRE and 5% bonus XP.", effect: { statBonus: { CRE: 1 }, xpBoost: 0.05 } },
+        { id: "trailblazer", name: "Trailblazer", cost: 3, description: "+2 EXP on exploration quests and +10 flat XP.", effect: { statBonus: { EXP: 2 }, flatXp: 10 } }
+      ];
+
+      const ACHIEVEMENTS = [
+        { id: "int-25", title: "Book Tactician", description: "Reach 25 INT.", stat: "INT", value: 25 },
+        { id: "int-60", title: "Scholar Vanguard", description: "Reach 60 INT.", stat: "INT", value: 60 },
+        { id: "exp-25", title: "Street Pathfinder", description: "Reach 25 EXP.", stat: "EXP", value: 25 },
+        { id: "exp-60", title: "World Walker", description: "Reach 60 EXP.", stat: "EXP", value: 60 },
+        { id: "cha-25", title: "Silver Tongue", description: "Reach 25 CHA.", stat: "CHA", value: 25 },
+        { id: "cha-60", title: "Guild Magnet", description: "Reach 60 CHA.", stat: "CHA", value: 60 },
+        { id: "cre-25", title: "Frame Weaver", description: "Reach 25 CRE.", stat: "CRE", value: 25 },
+        { id: "cre-60", title: "Vision Crafter", description: "Reach 60 CRE.", stat: "CRE", value: 60 },
+        { id: "dis-25", title: "Focus Initiate", description: "Reach 25 DIS.", stat: "DIS", value: 25 },
+        { id: "dis-60", title: "Steel Routine", description: "Reach 60 DIS.", stat: "DIS", value: 60 },
+        { id: "level-10", title: "Ten-Level Operator", description: "Reach level 10.", level: 10 },
+        { id: "quest-50", title: "Quest Crusher", description: "Complete 50 one-time quests.", completedQuestCount: 50 }
+      ];
+
+      const FILTERS = [
+        { id: "all", label: "All" }, { id: "Academic", label: "Academic" }, { id: "Exploration", label: "Exploration" },
+        { id: "Social", label: "Social" }, { id: "Creativity", label: "Creativity" }, { id: "Discipline", label: "Discipline" }, { id: "boss", label: "Boss Only" }
+      ];
+
+      const statKeys = Object.keys(STAT_META);
+      const quests = buildQuestDatabase();
+
+      const refs = {
+        xpFill: document.getElementById("xpFill"),
+        xpMeta: document.getElementById("xpMeta"),
+        levelText: document.getElementById("levelText"),
+        totalXpText: document.getElementById("totalXpText"),
+        streakText: document.getElementById("streakText"),
+        multiplierText: document.getElementById("multiplierText"),
+        activeTitle: document.getElementById("activeTitle"),
+        levelBadge: document.getElementById("levelBadge"),
+        questProgressText: document.getElementById("questProgressText"),
+        dailyWinText: document.getElementById("dailyWinText"),
+        skillPointText: document.getElementById("skillPointText"),
+        bossProgressText: document.getElementById("bossProgressText"),
+        statGrid: document.getElementById("statGrid"),
+        streakRails: document.getElementById("streakRails"),
+        skillGrid: document.getElementById("skillGrid"),
+        skillBuffSummary: document.getElementById("skillBuffSummary"),
+        achievementList: document.getElementById("achievementList"),
+        dailyQuestList: document.getElementById("dailyQuestList"),
+        questList: document.getElementById("questList"),
+        logList: document.getElementById("logList"),
+        filters: document.getElementById("filters"),
+        toastWrap: document.getElementById("toastWrap"),
+        soundState: document.getElementById("soundState"),
+        soundToggleBtn: document.getElementById("soundToggleBtn"),
+        resetDailyBtn: document.getElementById("resetDailyBtn"),
+        fullResetBtn: document.getElementById("fullResetBtn"),
+        lastResetText: document.getElementById("lastResetText"),
+        xpChart: document.getElementById("xpChart"),
+        statChart: document.getElementById("statChart")
+      };
+
+      let state = loadState();
+      runDailyResetIfNeeded();
+      hydrateMissingData();
+      renderAll();
+      bindEvents();
+
+      function buildQuestDatabase() {
+        const sideQuests = SIDE_QUESTS.map((entry, index) => {
+          const [stat, category, title] = entry;
+          const difficulty = inferDifficulty(title);
+          return {
+            id: `side-${index + 1}`,
+            number: index + 1,
+            title,
+            stat,
+            category,
+            type: "side",
+            description: `${category} quest: ${title}. Clear this objective once to gain XP and permanent stat growth.`,
+            xp: difficulty.xp,
+            statGain: difficulty.statGain
+          };
+        });
+
+        const bossQuests = BOSS_QUESTS.map((quest, index) => ({
+          ...quest,
+          number: sideQuests.length + index + 1
+        }));
+
+        return [...sideQuests, ...bossQuests];
+      }
+
+      function inferDifficulty(title) {
+        const lower = title.toLowerCase();
+        let xp = 36;
+        let statGain = 6;
+        if (/\b(100|90|50|30|14|10|5)\b/.test(lower)) { xp += 10; statGain += 2; }
+        if (lower.includes("3-hour") || lower.includes("portfolio") || lower.includes("scholarship") || lower.includes("30 days")) { xp += 18; statGain += 4; }
+        if (lower.includes("7 days") || lower.includes("2 weeks") || lower.includes("14 days") || lower.includes("4 weeks")) { xp += 12; statGain += 3; }
+        if (lower.includes("same day") || lower.includes("top 3") || lower.includes("manual") || lower.includes("reputation")) { xp += 8; statGain += 2; }
+        return { xp, statGain };
+      }
+
+      function baseState() {
+        return {
+          level: 1,
+          xp: 0,
+          totalXp: 0,
+          skillPoints: 0,
+          soundOn: true,
+          filter: "all",
+          stats: statKeys.reduce((acc, key) => { acc[key] = 0; return acc; }, {}),
+          titles: ["Rookie Adventurer"],
+          activeTitle: "Rookie Adventurer",
+          achievements: [],
+          skillsUnlocked: [],
+          completedQuests: {},
+          bossProgress: BOSS_QUESTS.reduce((acc, quest) => {
+            acc[quest.id] = { progress: 0, best: 0, completed: false, lastCheckIn: null };
+            return acc;
+          }, {}),
+          dailyHistory: [],
+          dailyCompletionsToday: {},
+          dailyWinsToday: 0,
+          streak: { current: 0, best: 0, lastCompletionDate: null },
+          logs: [{ id: cryptoRandom(), time: new Date().toISOString(), text: "New run initialized. Your life RPG begins now." }],
+          lastResetDate: getTodayKey()
+        };
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return baseState();
+          return { ...baseState(), ...JSON.parse(raw) };
+        } catch (error) {
+          console.warn("Failed to load save data:", error);
+          return baseState();
+        }
+      }
+
+      function hydrateMissingData() {
+        state.stats = { ...baseState().stats, ...state.stats };
+        state.completedQuests = state.completedQuests || {};
+        state.achievements = state.achievements || [];
+        state.titles = Array.isArray(state.titles) && state.titles.length ? state.titles : ["Rookie Adventurer"];
+        state.activeTitle = state.titles.includes(state.activeTitle) ? state.activeTitle : state.titles[0];
+        state.skillsUnlocked = Array.isArray(state.skillsUnlocked) ? state.skillsUnlocked : [];
+        state.bossProgress = { ...baseState().bossProgress, ...state.bossProgress };
+        state.dailyHistory = Array.isArray(state.dailyHistory) ? state.dailyHistory.slice(-MAX_HISTORY) : [];
+        state.dailyCompletionsToday = state.dailyCompletionsToday || {};
+        state.logs = Array.isArray(state.logs) ? state.logs.slice(0, MAX_LOGS) : [];
+        state.filter = state.filter || "all";
+        saveState();
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function bindEvents() {
+        refs.soundToggleBtn.addEventListener("click", () => {
+          state.soundOn = !state.soundOn;
+          addLog(`Sound ${state.soundOn ? "enabled" : "disabled"}.`);
+          saveState();
+          renderAll();
+        });
+
+        refs.resetDailyBtn.addEventListener("click", () => {
+          performDailyReset(true);
+          addToast("Daily board reset", "Repeatable quests are available again.");
+          renderAll();
+        });
+
+        refs.fullResetBtn.addEventListener("click", () => {
+          const confirmed = window.confirm("Reset all progress, levels, quests, and titles?");
+          if (!confirmed) return;
+          state = baseState();
+          saveState();
+          renderAll();
+          addToast("Full reset complete", "A new run has started.");
+        });
+      }
+
+      function getTodayKey() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function runDailyResetIfNeeded() {
+        if (state.lastResetDate !== getTodayKey()) performDailyReset(false);
+      }
+
+      function performDailyReset(manual) {
+        state.dailyCompletionsToday = {};
+        state.dailyWinsToday = 0;
+        state.lastResetDate = getTodayKey();
+
+        BOSS_QUESTS.forEach((quest) => {
+          const boss = state.bossProgress[quest.id];
+          if (!boss.completed && boss.lastCheckIn && boss.lastCheckIn !== getTodayKey()) {
+            boss.progress = 0;
+            boss.lastCheckIn = null;
+            addLog(`${quest.title} reset because the daily check-in chain was broken.`);
+          }
+        });
+
+        addLog(manual ? "Manual daily reset used. Daily quests refreshed." : "New day started. Daily quests refreshed automatically.");
+        saveState();
+      }
+
+      function completedQuestCount() {
+        return Object.values(state.completedQuests).filter(Boolean).length;
+      }
+
+      function completedBossCount() {
+        return BOSS_QUESTS.filter((quest) => state.bossProgress[quest.id]?.completed).length;
+      }
+
+      function streakMultiplier() {
+        const current = state.streak.current;
+        if (current >= 14) return 2;
+        if (current >= 7) return 1.5;
+        if (current >= 3) return 1.2;
+        return 1;
+      }
+
+      function xpNeededForLevel(level) {
+        return BASE_XP + (level - 1) * XP_STEP;
+      }
+
+      function totalSkillEffects() {
+        return state.skillsUnlocked.reduce((acc, skillId) => {
+          const skill = SKILLS.find((item) => item.id === skillId);
+          if (!skill) return acc;
+          if (skill.effect.xpBoost) acc.xpBoost += skill.effect.xpBoost;
+          if (skill.effect.flatXp) acc.flatXp += skill.effect.flatXp;
+          if (skill.effect.statBonus) {
+            Object.entries(skill.effect.statBonus).forEach(([key, value]) => {
+              acc.statBonus[key] = (acc.statBonus[key] || 0) + value;
+            });
+          }
+          return acc;
+        }, { xpBoost: 0, flatXp: 0, statBonus: {} });
+      }
+
+      function awardQuestRewards(quest, options = {}) {
+        const effects = totalSkillEffects();
+        const multiplier = streakMultiplier();
+        const xpGained = Math.round((quest.xp + (effects.flatXp || 0)) * multiplier * (1 + (effects.xpBoost || 0)));
+        const statGain = quest.statGain + (effects.statBonus[quest.stat] || 0);
+
+        state.totalXp += xpGained;
+        state.xp += xpGained;
+        state.stats[quest.stat] += statGain;
+        updateStreak(options.dateKey || getTodayKey());
+        pushHistoryPoint();
+
+        addLog(`${quest.title} cleared. +${xpGained} XP, +${statGain} ${quest.stat}.`);
+        addToast("Quest completed", `${quest.title} awarded ${xpGained} XP.`);
+
+        levelUpIfNeeded();
+        checkAutoQuestMilestones();
+        unlockAchievementsIfNeeded();
+        saveState();
+      }
+
+      function checkAutoQuestMilestones() {
+        const complete50 = quests.find((quest) => quest.title === "Complete 50 quests");
+        if (!complete50 || state.completedQuests[complete50.id]) return;
+        const countWithoutMilestone = Object.entries(state.completedQuests)
+          .filter(([id, done]) => done && id !== complete50.id)
+          .length;
+
+        if (countWithoutMilestone >= 50) {
+          state.completedQuests[complete50.id] = true;
+          addLog("Milestone quest auto-cleared: Complete 50 quests.");
+          awardQuestRewards(complete50);
+        }
+      }
+
+      function updateStreak(dateKey) {
+        const streak = state.streak;
+        if (streak.lastCompletionDate === dateKey) return;
+        if (!streak.lastCompletionDate) streak.current = 1;
+        else {
+          const diff = diffDays(streak.lastCompletionDate, dateKey);
+          if (diff === 1) streak.current += 1;
+          else if (diff > 1) streak.current = 1;
+        }
+        streak.lastCompletionDate = dateKey;
+        streak.best = Math.max(streak.best, streak.current);
+      }
+
+      function diffDays(fromKey, toKey) {
+        const from = new Date(`${fromKey}T00:00:00`);
+        const to = new Date(`${toKey}T00:00:00`);
+        return Math.round((to - from) / 86400000);
+      }
+
+      function pushHistoryPoint() {
+        state.dailyHistory.push({
+          date: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+          xp: state.totalXp
+        });
+        state.dailyHistory = state.dailyHistory.slice(-MAX_HISTORY);
+      }
+
+      function levelUpIfNeeded() {
+        let leveledUp = false;
+        while (state.xp >= xpNeededForLevel(state.level)) {
+          state.xp -= xpNeededForLevel(state.level);
+          state.level += 1;
+          state.skillPoints += 1;
+          leveledUp = true;
+          addLog(`Level up. You reached level ${state.level} and gained 1 skill point.`);
+          addToast("Level Up", `You reached level ${state.level}.`);
+        }
+        if (leveledUp) playSound("level");
+      }
+
+      function unlockAchievementsIfNeeded() {
+        const newlyUnlocked = [];
+
+        ACHIEVEMENTS.forEach((achievement) => {
+          if (state.achievements.includes(achievement.id)) return;
+          let unlocked = false;
+          if (achievement.stat) unlocked = state.stats[achievement.stat] >= achievement.value;
+          if (achievement.level) unlocked = state.level >= achievement.level;
+          if (achievement.completedQuestCount) unlocked = completedQuestCount() >= achievement.completedQuestCount;
+
+          if (unlocked) {
+            state.achievements.push(achievement.id);
+            newlyUnlocked.push(achievement);
+            if (!state.titles.includes(achievement.title)) {
+              state.titles.push(achievement.title);
+              state.activeTitle = achievement.title;
+            }
+          }
+        });
+
+        if (newlyUnlocked.length) {
+          newlyUnlocked.forEach((achievement) => {
+            addLog(`Achievement unlocked: ${achievement.title}.`);
+            addToast("Achievement unlocked", achievement.title);
+          });
+          playSound("achievement");
+        }
+      }
+
+      function addLog(text) {
+        state.logs.unshift({ id: cryptoRandom(), time: new Date().toISOString(), text });
+        state.logs = state.logs.slice(0, MAX_LOGS);
+      }
+
+      function addToast(title, body) {
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.innerHTML = `<strong>${escapeHtml(title)}</strong><div class="muted" style="margin-top:6px;">${escapeHtml(body)}</div>`;
+        refs.toastWrap.appendChild(toast);
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(10px)";
+          toast.style.transition = "all 0.25s ease";
+          setTimeout(() => toast.remove(), 260);
+        }, 2600);
+      }
+
+      function playSound(type) {
+        if (!state.soundOn) return;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        try {
+          const context = new AudioContextClass();
+          const master = context.createGain();
+          master.gain.value = 0.04;
+          master.connect(context.destination);
+
+          const notes = type === "level" ? [523.25, 659.25, 783.99] : [659.25, 880.0, 1174.66];
+          notes.forEach((freq, index) => {
+            const osc = context.createOscillator();
+            const gain = context.createGain();
+            osc.type = type === "level" ? "triangle" : "sine";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.0001, context.currentTime + index * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.3, context.currentTime + index * 0.08 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + index * 0.08 + 0.2);
+            osc.connect(gain);
+            gain.connect(master);
+            osc.start(context.currentTime + index * 0.08);
+            osc.stop(context.currentTime + index * 0.08 + 0.22);
+          });
+
+          setTimeout(() => context.close(), 900);
+        } catch (error) {
+          console.warn("Audio playback failed:", error);
+        }
+      }
+
+      function renderAll() {
+        renderHeaderBits();
+        renderStats();
+        renderStreaks();
+        renderSkills();
+        renderAchievements();
+        renderDailies();
+        renderFilters();
+        renderQuests();
+        renderLogs();
+        drawXpChart();
+        drawStatChart();
+        saveState();
+      }
+
+      function renderHeaderBits() {
+        const needed = xpNeededForLevel(state.level);
+        const ratio = Math.min((state.xp / needed) * 100, 100);
+        refs.levelText.textContent = state.level;
+        refs.levelBadge.textContent = `Lv ${state.level}`;
+        refs.totalXpText.textContent = state.totalXp;
+        refs.streakText.textContent = `${state.streak.current} days`;
+        refs.multiplierText.textContent = `${streakMultiplier()}x`;
+        refs.xpMeta.textContent = `${state.xp} / ${needed} XP`;
+        refs.xpFill.style.width = `${ratio}%`;
+        refs.activeTitle.textContent = state.activeTitle;
+        refs.questProgressText.textContent = `${completedQuestCount()} / ${quests.length}`;
+        refs.dailyWinText.textContent = state.dailyWinsToday;
+        refs.skillPointText.textContent = state.skillPoints;
+        refs.bossProgressText.textContent = `${completedBossCount()} / ${BOSS_QUESTS.length}`;
+        refs.soundState.textContent = state.soundOn ? "ON" : "OFF";
+        refs.lastResetText.textContent = `Last reset: ${state.lastResetDate}`;
+      }
+
+      function renderStats() {
+        const maxStat = Math.max(10, ...statKeys.map((key) => state.stats[key]));
+        refs.statGrid.innerHTML = statKeys.map((key) => {
+          const meta = STAT_META[key];
+          const width = Math.max(6, (state.stats[key] / maxStat) * 100);
+          return `
+            <div class="stat-card pulse">
+              <div>
+                <div class="label" style="color:${meta.color};">${meta.name}</div>
+                <strong>${state.stats[key]}</strong>
+                <div class="quest-subtle">${meta.label}</div>
+              </div>
+              <div class="tiny-bar"><span style="width:${width}%;background:${meta.color};"></span></div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderStreaks() {
+        const tiers = [
+          { days: 3, multiplier: "1.2x", text: "Momentum unlocked after three active days." },
+          { days: 7, multiplier: "1.5x", text: "Serious consistency bonus." },
+          { days: 14, multiplier: "2x", text: "Late-game streak multiplier." }
+        ];
+
+        refs.streakRails.innerHTML = tiers.map((tier) => {
+          const unlocked = state.streak.current >= tier.days;
+          return `
+            <div class="streak-item">
+              <strong>${tier.days} Day Streak | ${tier.multiplier}</strong>
+              <small>${tier.text}</small>
+              <div class="tiny-bar" style="margin-top:12px;">
+                <span style="width:${Math.min((state.streak.current / tier.days) * 100, 100)}%;background:${unlocked ? '#87ffae' : '#59d0ff'};"></span>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderSkills() {
+        const effects = totalSkillEffects();
+        const buffSummary = [];
+        if (effects.xpBoost) buffSummary.push(`+${Math.round(effects.xpBoost * 100)}% XP`);
+        if (effects.flatXp) buffSummary.push(`+${effects.flatXp} flat XP`);
+        Object.entries(effects.statBonus).forEach(([key, value]) => buffSummary.push(`+${value} ${key}`));
+        refs.skillBuffSummary.textContent = buffSummary.length ? buffSummary.join(" | ") : "No buffs active";
+
+        refs.skillGrid.innerHTML = SKILLS.map((skill) => {
+          const unlocked = state.skillsUnlocked.includes(skill.id);
+          const canBuy = state.skillPoints >= skill.cost && !unlocked;
+          return `
+            <div class="skill-node">
+              <div>
+                <strong>${skill.name}</strong>
+                <small>${skill.description}</small>
+                <div class="quest-subtle" style="margin-top:6px;">Cost: ${skill.cost} point${skill.cost > 1 ? "s" : ""}</div>
+              </div>
+              <button class="skill-btn" data-skill-id="${skill.id}" ${(!canBuy && !unlocked) ? "disabled" : ""}>${unlocked ? "Unlocked" : `Buy (${skill.cost})`}</button>
+            </div>
+          `;
+        }).join("");
+
+        refs.skillGrid.querySelectorAll("[data-skill-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const skillId = button.dataset.skillId;
+            if (state.skillsUnlocked.includes(skillId)) return;
+            const skill = SKILLS.find((entry) => entry.id === skillId);
+            if (!skill || state.skillPoints < skill.cost) return;
+            state.skillPoints -= skill.cost;
+            state.skillsUnlocked.push(skillId);
+            addLog(`Skill unlocked: ${skill.name}.`);
+            addToast("Skill unlocked", skill.name);
+            saveState();
+            renderAll();
+          });
+        });
+      }
+
+      function renderAchievements() {
+        refs.achievementList.innerHTML = ACHIEVEMENTS.map((achievement) => {
+          const unlocked = state.achievements.includes(achievement.id);
+          return `
+            <div class="achievement-card ${unlocked ? "unlocked" : ""}">
+              <div class="title">${achievement.title}</div>
+              <small>${achievement.description}</small>
+              <div class="quest-subtle" style="margin-top:8px;">${unlocked ? "Unlocked" : "Locked"}</div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderDailies() {
+        refs.dailyQuestList.innerHTML = DAILY_QUESTS.map((quest) => {
+          const done = !!state.dailyCompletionsToday[quest.id];
+          return `
+            <div class="daily-card">
+              <div class="panel-content" style="padding:16px;">
+                <div class="quest-head">
+                  <div>
+                    <h4 class="quest-title">${quest.title}</h4>
+                    <div class="quest-subtle">${quest.description}</div>
+                  </div>
+                  <div class="quest-tags">
+                    <span class="tag daily">Daily</span>
+                    <span class="tag" style="color:${STAT_META[quest.stat].color};">${quest.stat}</span>
+                  </div>
+                </div>
+              <div class="quest-subtle">Reward: ${quest.xp} XP | +${quest.statGain} ${quest.stat}</div>
+                <div class="quest-actions">
+                  <button class="quest-btn primary" data-daily-id="${quest.id}" ${done ? "disabled" : ""}>${done ? "Completed Today" : "Complete Daily"}</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        refs.dailyQuestList.querySelectorAll("[data-daily-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const quest = DAILY_QUESTS.find((entry) => entry.id === button.dataset.dailyId);
+            if (!quest || state.dailyCompletionsToday[quest.id]) return;
+            state.dailyCompletionsToday[quest.id] = true;
+            state.dailyWinsToday += 1;
+            awardQuestRewards({ ...quest, type: "daily" });
+            renderAll();
+          });
+        });
+      }
+
+      function renderFilters() {
+        refs.filters.innerHTML = FILTERS.map((filter) => `
+          <button class="chip ${state.filter === filter.id ? "active" : ""}" data-filter-id="${filter.id}" type="button">${filter.label}</button>
+        `).join("");
+
+        refs.filters.querySelectorAll("[data-filter-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.filter = button.dataset.filterId;
+            saveState();
+            renderQuests();
+            renderFilters();
+          });
+        });
+      }
+
+      function renderQuests() {
+        const filtered = quests.filter((quest) => {
+          if (state.filter === "all") return true;
+          if (state.filter === "boss") return quest.type === "boss";
+          return quest.category === state.filter;
+        });
+
+        if (!filtered.length) {
+          refs.questList.innerHTML = `<div class="empty">No quests match this filter.</div>`;
+          return;
+        }
+
+        refs.questList.innerHTML = filtered.map((quest) => {
+          const isBoss = quest.type === "boss";
+          const boss = state.bossProgress[quest.id];
+          const completed = isBoss ? boss?.completed : !!state.completedQuests[quest.id];
+          const progress = isBoss ? boss.progress : completed ? 1 : 0;
+          const target = isBoss ? quest.target : 1;
+          const progressWidth = Math.min((progress / target) * 100, 100);
+
+          return `
+            <div class="quest-card ${completed ? "completed" : ""}">
+              <div class="quest-head">
+                <div>
+                  <h4 class="quest-title">#${quest.number}. ${quest.title}</h4>
+                  <div class="quest-subtle">${quest.description}</div>
+                </div>
+                <div class="quest-tags">
+                  <span class="tag ${quest.type}">${quest.type.toUpperCase()}</span>
+                  <span class="tag" style="color:${STAT_META[quest.stat].color};">${quest.stat}</span>
+                  <span class="tag">${quest.category}</span>
+                </div>
+              </div>
+              <div class="quest-subtle">Reward: ${quest.xp} XP | +${quest.statGain} ${quest.stat}${isBoss && quest.rewardTitle ? ` | Title: ${quest.rewardTitle}` : ""}</div>
+              <div>
+                <div class="progress-head">
+                  <span>${isBoss ? "Progress" : "Completion"}</span>
+                  <strong>${progress} / ${target}</strong>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:${progressWidth}%;"></div>
+                </div>
+              </div>
+              <div class="quest-actions">
+                ${isBoss ? `
+                  <button class="quest-btn primary" data-boss-checkin="${quest.id}" ${completed || boss.lastCheckIn === getTodayKey() ? "disabled" : ""}>${completed ? "Cleared" : boss.lastCheckIn === getTodayKey() ? "Checked In Today" : "Daily Check-In"}</button>
+                  <button class="quest-btn warn" data-boss-reset="${quest.id}" ${completed ? "disabled" : ""}>Reset</button>
+                ` : `
+                  <button class="quest-btn primary" data-quest-id="${quest.id}" ${completed ? "disabled" : ""}>${completed ? "Completed" : "Mark Complete"}</button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        refs.questList.querySelectorAll("[data-quest-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const quest = quests.find((item) => item.id === button.dataset.questId);
+            if (!quest || state.completedQuests[quest.id]) return;
+            state.completedQuests[quest.id] = true;
+            awardQuestRewards(quest);
+            renderAll();
+          });
+        });
+
+        refs.questList.querySelectorAll("[data-boss-checkin]").forEach((button) => {
+          button.addEventListener("click", () => handleBossCheckIn(button.dataset.bossCheckin));
+        });
+
+        refs.questList.querySelectorAll("[data-boss-reset]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const bossQuest = BOSS_QUESTS.find((entry) => entry.id === button.dataset.bossReset);
+            if (!bossQuest) return;
+            state.bossProgress[bossQuest.id] = { progress: 0, best: 0, completed: false, lastCheckIn: null };
+            addLog(`${bossQuest.title} progress reset manually.`);
+            saveState();
+            renderAll();
+          });
+        });
+      }
+
+      function handleBossCheckIn(questId) {
+        const quest = BOSS_QUESTS.find((entry) => entry.id === questId);
+        const boss = state.bossProgress[questId];
+        const today = getTodayKey();
+        if (!quest || !boss || boss.completed || boss.lastCheckIn === today) return;
+
+        if (boss.lastCheckIn) {
+          const gap = diffDays(boss.lastCheckIn, today);
+          if (gap > 1) {
+            boss.progress = 0;
+            addLog(`${quest.title} streak was broken and reset.`);
+          }
+        }
+
+        boss.progress += 1;
+        boss.best = Math.max(boss.best, boss.progress);
+        boss.lastCheckIn = today;
+        addLog(`${quest.title}: day ${boss.progress}/${quest.target}.`);
+        addToast("Boss progress", `${quest.title} advanced to ${boss.progress}/${quest.target}.`);
+
+        if (boss.progress >= quest.target) {
+          boss.completed = true;
+          state.completedQuests[quest.id] = true;
+          if (quest.rewardTitle && !state.titles.includes(quest.rewardTitle)) {
+            state.titles.push(quest.rewardTitle);
+            state.activeTitle = quest.rewardTitle;
+          }
+          awardQuestRewards(quest, { dateKey: today });
+          playSound("achievement");
+        }
+
+        saveState();
+        renderAll();
+      }
+
+      function renderLogs() {
+        if (!state.logs.length) {
+          refs.logList.innerHTML = `<div class="empty">No activity yet.</div>`;
+          return;
+        }
+
+        refs.logList.innerHTML = state.logs.map((entry) => `
+          <div class="log-item">
+            <div>${escapeHtml(entry.text)}</div>
+            <div class="quest-subtle" style="margin-top:6px;">${new Date(entry.time).toLocaleString()}</div>
+          </div>
+        `).join("");
+      }
+
+      function drawXpChart() {
+        const canvas = refs.xpChart;
+        const ctx = canvas.getContext("2d");
+        const ratio = window.devicePixelRatio || 1;
+        const width = canvas.clientWidth || canvas.width;
+        const height = canvas.clientHeight || canvas.height;
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        const data = state.dailyHistory.length ? state.dailyHistory : [{ date: "Now", xp: state.totalXp }];
+        const padding = 28;
+        const maxValue = Math.max(100, ...data.map((point) => point.xp));
+        const chartWidth = width - padding * 2;
+        const chartHeight = height - padding * 2;
+
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i += 1) {
+          const y = padding + (chartHeight / 3) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(width - padding, y);
+          ctx.stroke();
+        }
+
+        if (data.length === 1) {
+          ctx.fillStyle = "#59d0ff";
+          ctx.beginPath();
+          ctx.arc(width / 2, height / 2, 6, 0, Math.PI * 2);
+          ctx.fill();
+          return;
+        }
+
+        const points = data.map((point, index) => {
+          const x = padding + (chartWidth / (data.length - 1)) * index;
+          const y = height - padding - (point.xp / maxValue) * chartHeight;
+          return { x, y, label: point.date };
+        });
+
+        const gradient = ctx.createLinearGradient(0, padding, 0, height - padding);
+        gradient.addColorStop(0, "rgba(89,208,255,0.36)");
+        gradient.addColorStop(1, "rgba(89,208,255,0)");
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, height - padding);
+        points.forEach((point) => ctx.lineTo(point.x, point.y));
+        ctx.lineTo(points[points.length - 1].x, height - padding);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          if (index === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.strokeStyle = "#59d0ff";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = "#edf5ff";
+        ctx.font = "12px Segoe UI";
+        points.forEach((point, index) => {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+          ctx.fillStyle = "#87ffae";
+          ctx.fill();
+          if (index % Math.ceil(points.length / 6) === 0 || index === points.length - 1) {
+            ctx.fillStyle = "rgba(237,245,255,0.78)";
+            ctx.fillText(point.label, point.x - 10, height - 8);
+          }
+        });
+      }
+
+      function drawStatChart() {
+        const canvas = refs.statChart;
+        const ctx = canvas.getContext("2d");
+        const ratio = window.devicePixelRatio || 1;
+        const width = canvas.clientWidth || canvas.width;
+        const height = canvas.clientHeight || canvas.height;
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        const centerX = width / 2;
+        const centerY = height / 2 + 8;
+        const radius = Math.min(width, height) * 0.3;
+        const maxValue = Math.max(10, ...statKeys.map((key) => state.stats[key]));
+        const layers = 4;
+
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.lineWidth = 1;
+        for (let layer = 1; layer <= layers; layer += 1) {
+          const layerRadius = (radius / layers) * layer;
+          ctx.beginPath();
+          statKeys.forEach((key, index) => {
+            const angle = (Math.PI * 2 * index) / statKeys.length - Math.PI / 2;
+            const x = centerX + Math.cos(angle) * layerRadius;
+            const y = centerY + Math.sin(angle) * layerRadius;
+            if (index === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.closePath();
+          ctx.stroke();
+        }
+
+        statKeys.forEach((key, index) => {
+          const angle = (Math.PI * 2 * index) / statKeys.length - Math.PI / 2;
+          const x = centerX + Math.cos(angle) * radius;
+          const y = centerY + Math.sin(angle) * radius;
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(x, y);
+          ctx.strokeStyle = "rgba(255,255,255,0.1)";
+          ctx.stroke();
+          ctx.fillStyle = STAT_META[key].color;
+          ctx.font = "13px Segoe UI";
+          ctx.fillText(key, x - 12, y - 8);
+        });
+
+        ctx.beginPath();
+        statKeys.forEach((key, index) => {
+          const value = state.stats[key];
+          const scaled = (value / maxValue) * radius;
+          const angle = (Math.PI * 2 * index) / statKeys.length - Math.PI / 2;
+          const x = centerX + Math.cos(angle) * scaled;
+          const y = centerY + Math.sin(angle) * scaled;
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, "rgba(89,208,255,0.28)");
+        gradient.addColorStop(1, "rgba(255,200,87,0.2)");
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = "#87ffae";
+        ctx.lineWidth = 2.5;
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      }
+
+      function cryptoRandom() {
+        if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+        return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+
+      window.addEventListener("resize", () => {
+        drawXpChart();
+        drawStatChart();
+      });
+    })();
+  </script>
+</body>
+</html>
